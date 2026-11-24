@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Windows.Forms;
 using System.Xml;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TS3SimRipper
 {
@@ -345,14 +346,20 @@ namespace TS3SimRipper
             }
             private TGI ResolveAssetPathToTGI(string assetPath)
             {
+                string name; ulong instance = 0;
+                if (assetPath.Count(c => c == ':') == 2)
+                    instance = Convert.ToUInt64(assetPath.Split(':').Last(),16);
                 // "($assetRoot)\InGame\Complates\Materials\Geometric\CirclesEP8Sml_2.tga"
-                string name = assetPath.Split('\\').Last();
+                else
+                {
+                    name = assetPath.Split('\\').Last();
+                    instance = FNVhash.FNV64(name);
+                }  // use the existing (uint,uint,ulong) ctor — skip TGI(string) entirely
 
-                ulong instance = FNVhash.FNV64(name);
-                return new TGI(0x00B2D882, 0x00000000, instance);   // use the existing (uint,uint,ulong) ctor — skip TGI(string) entirely
+                return new TGI(0x00B2D882, 0x00000000, instance);
             }
-            public Form1.PatternInfo GetPatternInfo(string pattern)
-            {
+            public Form1.PatternInfo GetPatternInfo(string pattern) //TODO fix it so background and etc file textures are calculated fnvs from just names
+            { //aka crop the path only to name without extention, get fnv64 and replace the info with that
                 if (xml == null || xml.Length == 0)
                 {
                     return null;

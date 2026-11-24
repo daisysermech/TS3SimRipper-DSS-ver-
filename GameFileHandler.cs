@@ -631,6 +631,62 @@ namespace TS3SimRipper
             errorMsg += "Can't find DDS texture " + tgi.ToString() + Environment.NewLine;
             return null;
         }
+
+        //overload for multiple packages, used for faster fetching images from CC packages
+        private Bitmap FetchGameImageFromDDS(TGI tgi, ref string errorMsg, string[] packagenames, int[] dimensions=null)
+        {
+            Package[] gP;
+            List<Package> gP0=new List<Package>();
+            for (int i = 0;i<packagenames.Length;i++)
+            {
+                gP0.Add((Package)Package.OpenPackage(0,packagenames[i]));
+            }
+            gP = gP0.ToArray();
+
+            if (tgi == null || tgi.Instance == 0ul) return null;
+            Predicate<IResourceIndexEntry> pred = r => r.ResourceType == tgi.Type & r.ResourceGroup == tgi.Group & r.Instance == tgi.Instance;
+            for (int i = 0; i < gP.Length; i++)
+            {
+                Package p = gP[i];
+                IResourceIndexEntry irie = p.Find(pred);
+                if (irie != null)
+                {
+                    using (Stream s = p.GetResource(irie))
+                    {
+                        using (DdsFile dds = new DdsFile())
+                        {
+                            if (!isBasegamePackage[i]) { SaveStream(irie, s, TroubleshootPackage); }
+                            try
+                            {
+                                s.Position = 0;
+                                dds.Load(s, false);
+                                //if (irie.Instance == 0x3c4db572c11bc077)
+                                //{
+                                //    int idummy = 0;
+                                //}
+                                if (dimensions != null)
+                                {
+                                    Bitmap texture = new Bitmap(StreamCopy(dds.Image), dimensions[0], dimensions[1]);
+                                    return texture;
+                                }
+                                else
+                                {
+                                    Bitmap texture = StreamCopy(dds.Image);
+                                    return texture;
+                                }
+                            }
+                            catch
+                            {
+                                errorMsg += "Can't read DDS image " + tgi.ToString() + ", Package: " + gamePackageNames[i] + Environment.NewLine;
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+            errorMsg += "Can't find DDS texture " + tgi.ToString() + Environment.NewLine;
+            return null;
+        }
         private Bitmap StreamCopy(Bitmap other)
         {
             Bitmap tmp;
