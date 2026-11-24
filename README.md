@@ -16,6 +16,9 @@ So small instruction time:
 5) If you have issues, let me know.
 
 Multi Installer: https://modthesims.info/d/364038/delphy-s-sims-3-pack-multi-extracter-updated-5th-sept-2009.html
+
 OG Sims 3 Ripper thread and code: https://modthesims.info/showthread.php?t=639447
 
 My Patreon (FREE): https://www.patreon.com/daisysermechstudio
+
+P.S. 'Professional' is my PC's name, don't worry.
