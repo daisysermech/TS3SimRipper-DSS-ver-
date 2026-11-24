@@ -358,8 +358,8 @@ namespace TS3SimRipper
 
                 return new TGI(0x00B2D882, 0x00000000, instance);
             }
-            public Form1.PatternInfo GetPatternInfo(string pattern) //TODO fix it so background and etc file textures are calculated fnvs from just names
-            { //aka crop the path only to name without extention, get fnv64 and replace the info with that
+            public Form1.PatternInfo GetPatternInfo(string pattern)
+            {
                 if (xml == null || xml.Length == 0)
                 {
                     return null;

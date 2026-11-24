@@ -45,7 +45,7 @@ namespace TS3SimRipper
                                 tmp = gray * color[2 - k];
                                 if (tmp < 0) tmp = 0;
                                 if (tmp > 1) tmp = 1;
-                                if (k == 0 || !overlay) mult[i + k] = (byte)(tmp * 255f);
+                                if (p == 0 || !overlay) mult[i + k] = (byte)(tmp * 255f);
                                 else mult[i + k] = (byte)(((blend * tmp) + ((1f - blend) * (mult[i + k] / 255f))) * 255f);
                             }
                         }
@@ -67,7 +67,7 @@ namespace TS3SimRipper
                                 //else tmp = (gray * blend * color[2 - k]) + ((1f - blend) * (mult[i + k] / 255f));
                                 if (tmp < 0) tmp = 0;
                                 if (tmp > 1) tmp = 1;
-                                if (k == 0 || !overlay) mult[i + k] = (byte)(tmp * 255f);
+                                if (p == 0 || !overlay) mult[i + k] = (byte)(tmp * 255f);
                                 else mult[i + k] = (byte)(((blend * tmp) + ((1f - blend) * (mult[i + k] / 255f))) * 255f);
                             }
                         }
@@ -90,7 +90,7 @@ namespace TS3SimRipper
 
             Bitmap texture = new Bitmap(width, height);
             Rectangle rect = new Rectangle(0, 0, width, height);
-            System.Drawing.Imaging.BitmapData bmpData = texture.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            BitmapData bmpData = texture.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             IntPtr ptr;
             if (bmpData.Stride > 0) ptr = bmpData.Scan0;
             else ptr = bmpData.Scan0 + bmpData.Stride * (texture.Height - 1);
