@@ -128,5 +128,29 @@ namespace TS3SimRipper.Properties {
                 this["TSMModsPath"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TS3DCCachePath {
+            get {
+                return ((string)(this["TS3DCCachePath"]));
+            }
+            set {
+                this["TS3DCCachePath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool useDCCache_n_SS {
+            get {
+                return ((bool)(this["useDCCache_n_SS"]));
+            }
+            set {
+                this["useDCCache_n_SS"] = value;
+            }
+        }
     }
 }

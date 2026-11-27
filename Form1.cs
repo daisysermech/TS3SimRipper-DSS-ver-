@@ -41,10 +41,12 @@ namespace TS3SimRipper
 
         List<Package> currentSavePacks;
         List<string> currentSavePackNames;
+        bool useDCCache_n_SS;
 
         public Form1()
         {
             InitializeComponent();
+            useDCCache_n_SS = Properties.Settings.Default.useDCCache_n_SS;
             currentGame = (Game)Properties.Settings.Default.GameMode;
             GameMode_comboBox.SelectedIndexChanged -= GameMode_comboBox_SelectedIndexChanged;
             GameMode_comboBox.SelectedIndex = Properties.Settings.Default.GameMode;
@@ -205,7 +207,7 @@ namespace TS3SimRipper
             internal string blendNames;
             internal BGEO[] bgeos;
             internal BOND[] bonds;
-            internal OutfitInfo(CASP[] casps, string[] packageNames, float[] physique, TONE skintone, float skinColor, float cutness, 
+            internal OutfitInfo(CASP[] casps, string[] packageNames, float[] physique, TONE skintone, float skinColor, float cutness,
                 float cleavage, string blendNames, BGEO[] bgeoArray, BOND[] bondArray)
             {
                 this.casps = casps;
@@ -300,7 +302,7 @@ namespace TS3SimRipper
 
             int outfitcount = sim.simOutfits.Length;
             Outfits_comboBox.Items.Clear();
-            for (int o=0;o<outfitcount;o++)
+            for (int o = 0; o < outfitcount; o++)
                 Outfits_comboBox.Items.Add("Outfit " + (o + 1).ToString());
             Outfits_comboBox.Enabled = outfitcount > 1;
         }
@@ -322,113 +324,111 @@ namespace TS3SimRipper
             simDesc = "Name: " + currentName + Environment.NewLine + "Species: " + currentSpecies.ToString() + Environment.NewLine +
                 "Age: " + currentAge.ToString() + Environment.NewLine + "Gender: " + currentGender.ToString() + Environment.NewLine + Environment.NewLine;
             SIMO[] outfits = sim.simOutfits;
-            
+
             currentOutfits = new List<OutfitInfo>();
             List<TGI> caspsNotFound = new List<TGI>();
             //for (int o = 0; o < outfits.Length; o++)
-            int o = outfitIndex;
+            SIMO outfit = outfits[OutfixIndex];
+            List<CASP> casps = new List<CASP>();
+            List<string> packNames = new List<string>();
+            SIMO.CASPEntry[] caspEntries = outfit.CASPEntries;
+            for (int i = 0; i < caspEntries.Length; i++)
             {
-                SIMO outfit = outfits[o];
-                List<CASP> casps = new List<CASP>();
-                List<string> packNames = new List<string>();
-                SIMO.CASPEntry[] caspEntries = outfit.CASPEntries;
-                for (int i = 0; i < caspEntries.Length; i++)
-                {
-                    TGI tgi = outfit.TGILinks[caspEntries[i].CaspLinkIndex];
-                    if (caspsNotFound.Contains(tgi)) continue;
-                    string packname;
-                    CASP casp = FetchGameCASP(tgi, out packname, caspEntries[i].TypeOfClothing, ref errorList);
-                    if (casp == null) { caspsNotFound.Add(tgi); continue; }
-                    casp.outfitPreset = new CASP.OutfitPreset(outfit.PresetXMLs[i].XML);
-                    casps.Add(casp);
-                    packNames.Add(packname);
-                }
-                string packname2;
-                TONE skin = FetchGameTONE(outfit.TGILinks[outfit.skinToneIndex], out packname2, ref errorList);
-                SIMO.BlendEntry[] blends = outfit.BlendEntries;
-                List<BGEO> bgeoList = new List<BGEO>();
-                List<BOND> bondList = new List<BOND>();
-                string blendDesc = "";
-              //  List<BOND> bigMorphs = new List<BOND>();
-                foreach (SIMO.BlendEntry blend in blends)
-                {
-                    TGI tgi = outfit.TGILinks[blend.BlendIndex];
-                    if (tgi.Type != (uint)ResourceTypes.FaceBlend) continue;
-                    string packname;
-                    BBLN bbln = FetchGameBlend(tgi, out packname, ref errorList);
-                    if (bbln == null) continue;
-                    //bool isTeen = (string.Compare(bbln.BlendName, "bodyTeen") == 0);
-                    //if (!isTeen) 
-                    //if (bbln.BlendName.IndexOf("HorseSizeSlider") < 0) continue;
-                    blendDesc += bbln.BlendName + " :";
-                    BGEO bgeo = null;
-                    if (bbln.BGEOlink != null)
-                    {
-                        TGI bgeoTGI = bbln.BGEOlink;
-                        bgeo = FetchGameBGEO(bgeoTGI, ref errorList);
-                    }
-                    bool gotBGEO = false;
-                    bool gotBOND = false;
-                    foreach (BBLN.Entry entry in bbln.Entries)
-                    {
-                        foreach (BBLN.MorphEntry geom in entry.geomMorphs)
-                        {
-                            if ((!gotBGEO) &&
-                                (((uint)currentSpecies & geom.ageGenderSpecies) > 0 || (currentSpecies == Species.Human) & (geom.ageGenderSpecies & 0x0F00) == 0) &&
-                                (((uint)currentAge & geom.ageGenderSpecies) > 0) && (((uint)currentGender & geom.ageGenderSpecies) > 0))
-                            {
-                                if (bgeo != null)
-                                {
-                                    bgeo.weight = blend.Weight * geom.amount;
-                                    // if (bgeo.weight < 0) bgeo.weight = 0;
-                                    bgeo.name = bbln.BlendName;
-                                    bgeoList.Add(bgeo);
-                                    blendDesc += " BGEO:" + bgeo.weight.ToString();
-                                }
-                                gotBGEO = true;
-                                break;
-                            }
-                        }
-                        foreach (BBLN.MorphEntry bone in entry.boneMorphs)
-                        {
-                            if ((!gotBOND) &&
-                                (((uint)currentSpecies & bone.ageGenderSpecies) > 0 || (currentSpecies == Species.Human) & (bone.ageGenderSpecies & 0x0F00) == 0) &&
-                                (((uint)currentAge & bone.ageGenderSpecies) > 0) && (((uint)currentGender & bone.ageGenderSpecies) > 0))
-                            {
-                                TGI vpxyTGI = bbln.TGIList[bone.tgiIndex];
-                                string packagename;
-                                VPXY vpxy = FetchGameVPXY(vpxyTGI, out packagename, ref errorList);
-                                if (vpxy == null) continue;
-                                foreach (TGI t in vpxy.AllLinks)
-                                {
-                                    BOND bond = FetchGameBOND(t, ref errorList);
-                                    if (bond != null)
-                                    {
-                                        bond.weight = blend.Weight * bone.amount;
-                                        // if (bond.weight < 0) bond.weight = 0;
-                                        bond.name = bbln.BlendName;
-                                        //if (bond.IsSizeMorph())
-                                        //{
-                                        //    bigMorphs.Add(bond);
-                                        //}
-                                        //else
-                                        //{
-                                            bondList.Add(bond);
-                                        //}
-                                        blendDesc += " BOND:" + bond.weight.ToString() + " ";
-                                    }
-                                }
-                                gotBOND = true;
-                                break;
-                            }
-                        }
-                    }
-                    blendDesc += Environment.NewLine;
-                }
-                currentOutfits.Add(new OutfitInfo(casps.ToArray(), packNames.ToArray(), outfit.SimPhysique, skin, outfit.skinColorSlider, 
-                    outfit.definitionSlider, outfit.breastSlider, blendDesc, bgeoList.ToArray(), bondList.ToArray()));
-                //Outfits_comboBox.Items.Add("Outfit " + (o + 1).ToString());
+                TGI tgi = outfit.TGILinks[caspEntries[i].CaspLinkIndex];
+                if (caspsNotFound.Contains(tgi)) continue;
+                string packname;
+                CASP casp = FetchGameCASP(tgi, out packname, caspEntries[i].TypeOfClothing, ref errorList);
+                if (casp == null) { caspsNotFound.Add(tgi); continue; }
+                casp.outfitPreset = new CASP.OutfitPreset(outfit.PresetXMLs[i].XML);
+                casps.Add(casp);
+                packNames.Add(packname);
             }
+            string packname2;
+            TONE skin = FetchGameTONE(outfit.TGILinks[outfit.skinToneIndex], out packname2, ref errorList);
+            SIMO.BlendEntry[] blends = outfit.BlendEntries;
+            List<BGEO> bgeoList = new List<BGEO>();
+            List<BOND> bondList = new List<BOND>();
+            string blendDesc = "";
+            //  List<BOND> bigMorphs = new List<BOND>();
+            foreach (SIMO.BlendEntry blend in blends)
+            {
+                TGI tgi = outfit.TGILinks[blend.BlendIndex];
+                if (tgi.Type != (uint)ResourceTypes.FaceBlend) continue;
+                string packname;
+                BBLN bbln = FetchGameBlend(tgi, out packname, ref errorList);
+                if (bbln == null) continue;
+                //bool isTeen = (string.Compare(bbln.BlendName, "bodyTeen") == 0);
+                //if (!isTeen) 
+                //if (bbln.BlendName.IndexOf("HorseSizeSlider") < 0) continue;
+                blendDesc += bbln.BlendName + " :";
+                BGEO bgeo = null;
+                if (bbln.BGEOlink != null)
+                {
+                    TGI bgeoTGI = bbln.BGEOlink;
+                    bgeo = FetchGameBGEO(bgeoTGI, ref errorList);
+                }
+                bool gotBGEO = false;
+                bool gotBOND = false;
+                foreach (BBLN.Entry entry in bbln.Entries)
+                {
+                    foreach (BBLN.MorphEntry geom in entry.geomMorphs)
+                    {
+                        if ((!gotBGEO) &&
+                            (((uint)currentSpecies & geom.ageGenderSpecies) > 0 || (currentSpecies == Species.Human) & (geom.ageGenderSpecies & 0x0F00) == 0) &&
+                            (((uint)currentAge & geom.ageGenderSpecies) > 0) && (((uint)currentGender & geom.ageGenderSpecies) > 0))
+                        {
+                            if (bgeo != null)
+                            {
+                                bgeo.weight = blend.Weight * geom.amount;
+                                // if (bgeo.weight < 0) bgeo.weight = 0;
+                                bgeo.name = bbln.BlendName;
+                                bgeoList.Add(bgeo);
+                                blendDesc += " BGEO:" + bgeo.weight.ToString();
+                            }
+                            gotBGEO = true;
+                            break;
+                        }
+                    }
+                    foreach (BBLN.MorphEntry bone in entry.boneMorphs)
+                    {
+                        if ((!gotBOND) &&
+                            (((uint)currentSpecies & bone.ageGenderSpecies) > 0 || (currentSpecies == Species.Human) & (bone.ageGenderSpecies & 0x0F00) == 0) &&
+                            (((uint)currentAge & bone.ageGenderSpecies) > 0) && (((uint)currentGender & bone.ageGenderSpecies) > 0))
+                        {
+                            TGI vpxyTGI = bbln.TGIList[bone.tgiIndex];
+                            string packagename;
+                            VPXY vpxy = FetchGameVPXY(vpxyTGI, out packagename, ref errorList);
+                            if (vpxy == null) continue;
+                            foreach (TGI t in vpxy.AllLinks)
+                            {
+                                BOND bond = FetchGameBOND(t, ref errorList);
+                                if (bond != null)
+                                {
+                                    bond.weight = blend.Weight * bone.amount;
+                                    // if (bond.weight < 0) bond.weight = 0;
+                                    bond.name = bbln.BlendName;
+                                    //if (bond.IsSizeMorph())
+                                    //{
+                                    //    bigMorphs.Add(bond);
+                                    //}
+                                    //else
+                                    //{
+                                    bondList.Add(bond);
+                                    //}
+                                    blendDesc += " BOND:" + bond.weight.ToString() + " ";
+                                }
+                            }
+                            gotBOND = true;
+                            break;
+                        }
+                    }
+                }
+                blendDesc += Environment.NewLine;
+            }
+            currentOutfits.Add(new OutfitInfo(casps.ToArray(), packNames.ToArray(), outfit.SimPhysique, skin, outfit.skinColorSlider,
+                outfit.definitionSlider, outfit.breastSlider, blendDesc, bgeoList.ToArray(), bondList.ToArray()));
+            //Outfits_comboBox.Items.Add("Outfit " + (o + 1).ToString());
+
 
             /*
             Outfits_comboBox.SelectedIndexChanged -= Outfits_comboBox_SelectedIndexChanged;
@@ -683,7 +683,8 @@ namespace TS3SimRipper
 
         private void aboutToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(version + Environment.NewLine + "by cmar" + Environment.NewLine + "Available free from ModTheSims.info");
+            MessageBox.Show(version + Environment.NewLine + "by cmar" + Environment.NewLine + "Available free from ModTheSims.info" +
+                Environment.NewLine + "Fork and fixes by Daisy Sermech" + Environment.NewLine + "Available at GitHub");
         }
 
         private void setupToolStripMenuItem_Click(object sender, EventArgs e)
@@ -754,13 +755,13 @@ namespace TS3SimRipper
             //TS4SaveGame.SimData sim = ((SimListing)sims_listBox.SelectedItem).sim;
             //DisplaySim(sim, (SimOccult)Occults_comboBox.SelectedItem);
         }
-        
+
         private void Pregnancy_trackBar_Scroll(object sender, EventArgs e)
         {
             if (BaseModel == null) return;
             pregnancyProgress = Pregnancy_trackBar.Value / 10f;
-         //   CurrentModel = LoadDMapMorph(BaseModel, pregnantModifier[0], pregnantModifier[1]);
-         //   GlassModel = LoadDMapMorph(BaseGlass, pregnantModifier[0], pregnantModifier[1]);
+            //   CurrentModel = LoadDMapMorph(BaseModel, pregnantModifier[0], pregnantModifier[1]);
+            //   GlassModel = LoadDMapMorph(BaseGlass, pregnantModifier[0], pregnantModifier[1]);
             morphPreview1.Start_Mesh(GetModels(), GetTextures(), GetSpeculars(), true);
         }
 

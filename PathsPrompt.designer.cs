@@ -47,12 +47,13 @@
             this.BlankGamePaths_button = new System.Windows.Forms.Button();
             this.label8 = new System.Windows.Forms.Label();
             this.AddGamePath_button = new System.Windows.Forms.Button();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.GamePaths_dataGridView)).BeginInit();
             this.SuspendLayout();
             // 
             // Save_button
             // 
-            this.Save_button.Location = new System.Drawing.Point(250, 421);
+            this.Save_button.Location = new System.Drawing.Point(252, 525);
             this.Save_button.Margin = new System.Windows.Forms.Padding(2);
             this.Save_button.Name = "Save_button";
             this.Save_button.Size = new System.Drawing.Size(183, 52);
@@ -220,7 +221,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(257, 475);
+            this.label8.Location = new System.Drawing.Point(259, 579);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(169, 13);
             this.label8.TabIndex = 19;
@@ -236,11 +237,25 @@
             this.AddGamePath_button.UseVisualStyleBackColor = true;
             this.AddGamePath_button.Click += new System.EventHandler(this.AddGamePath_button_Click);
             // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Checked = true;
+            this.checkBox1.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBox1.Location = new System.Drawing.Point(130, 431);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(326, 17);
+            this.checkBox1.TabIndex = 21;
+            this.checkBox1.Text = "Use DCCache and SavedSims folders for fetching package info";
+            this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkBox1.CheckedChanged += new System.EventHandler(this.checkBox1_CheckedChanged);
+            // 
             // PathsPrompt
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(682, 512);
+            this.ClientSize = new System.Drawing.Size(682, 610);
+            this.Controls.Add(this.checkBox1);
             this.Controls.Add(this.AddGamePath_button);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.BlankGamePaths_button);
@@ -287,5 +302,6 @@
         private System.Windows.Forms.Button BlankGamePaths_button;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Button AddGamePath_button;
+        private System.Windows.Forms.CheckBox checkBox1;
     }
 }

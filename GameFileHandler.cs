@@ -188,6 +188,32 @@ namespace TS3SimRipper
             }
             return Directory.Exists(Properties.Settings.Default.TS3ModsPath);
         }
+        private string[] GetUserFolderFiles(string folderName, string pattern)
+        {
+            if (currentGame == Game.SimsMedieval) return new string[0];
+            try
+            {
+                List<string> roots = new List<string>();
+                string saves = Properties.Settings.Default.TS3SavesPath;
+                if (!String.IsNullOrWhiteSpace(saves))
+                    roots.Add(Path.Combine(Path.GetDirectoryName(saves.TrimEnd('\\', '/')), folderName));
+                string mods = Properties.Settings.Default.TS3ModsPath;
+                if (!String.IsNullOrWhiteSpace(mods))
+                    roots.Add(Path.Combine(Path.GetDirectoryName(mods.TrimEnd('\\', '/')), folderName));
+                roots.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal),
+                    "Electronic Arts", "The Sims 3", folderName));
+                foreach (string dir in roots)
+                {
+                    if (dir != null && Directory.Exists(dir))
+                        return Directory.GetFiles(dir, pattern, SearchOption.AllDirectories);
+                }
+            }
+            catch { }
+            return new string[0];
+        }
+
+        private string[] GetDCCacheFiles() { return GetUserFolderFiles("DCCache", "*.dbc"); }
+        private string[] GetSavedSimFiles() { return GetUserFolderFiles("SavedSims", "*.sim"); }
 
         private bool SetupGamePacks()
         {
@@ -266,10 +292,20 @@ namespace TS3SimRipper
 
                 string[] localCC;
                 //string[] localDL;
+                string[] dccFiles = new string[] { };
+                if (useDCCache_n_SS)
+                {
+                    List<string> extraFiles = new List<string>(GetDCCacheFiles());
+                    extraFiles.AddRange(GetSavedSimFiles());
+                    dccFiles = extraFiles.ToArray();
+                }
                 try
                 {
-                    localCC = Directory.GetFiles(currentGame == Game.SimsMedieval ? Properties.Settings.Default.TSMModsPath : Properties.Settings.Default.TS3ModsPath,
+                    string[] modFiles = Directory.GetFiles(currentGame == Game.SimsMedieval ? Properties.Settings.Default.TSMModsPath : Properties.Settings.Default.TS3ModsPath,
                         "*.package", SearchOption.AllDirectories);
+                    localCC = new string[modFiles.Length + dccFiles.Length];
+                    modFiles.CopyTo(localCC, 0);
+                    dccFiles.CopyTo(localCC, modFiles.Length);
                 }
                 catch
                 {

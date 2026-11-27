@@ -28,7 +28,7 @@ namespace TS3SimRipper
 
             for (int i = 0; i < mult.Length; i += 4)
             {
-                float gray = ((mult[i] + mult[i + 1] + mult[i + 2]) / 3f) / (overlay ? 255f : 127);
+                float gray = ((mult[i] + mult[i + 1] + mult[i + 2]) / 3f) / (overlay ? 127f : 127);
                 byte[] mask = BitConverter.GetBytes(maskTexture[i / 4]);
                 byte[] maskControl = new byte[] { mask[2], mask[1], mask[0], mask[3] };
                 for (int p = 0; p < patterns.Count; p++)     //for each pattern/color 

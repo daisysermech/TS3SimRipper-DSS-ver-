@@ -35,6 +35,7 @@ namespace TS3SimRipper
     public partial class PathsPrompt : Form
     {
         Game currentGame;
+        bool useDCCache_n_SS;
 
         private static readonly Regex PackDirRegex =
             new Regex(@"^(EP|SP)0*(\d+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -94,6 +95,8 @@ namespace TS3SimRipper
         {
             InitializeComponent();
             currentGame = game;
+            useDCCache_n_SS = Properties.Settings.Default.useDCCache_n_SS;
+            checkBox1.Checked = useDCCache_n_SS;
             if (game == Game.SimsMedieval)
             {
                 label2.Text = "Location of TSM base" + Environment.NewLine + "game installation folder: ";
@@ -190,6 +193,7 @@ namespace TS3SimRipper
                 Properties.Settings.Default.TS3Path = gamePaths;
                 Properties.Settings.Default.TS3ModsPath = TSUserPathString.Text;
                 Properties.Settings.Default.TS3SavesPath = TSSavesPathString.Text;
+                Properties.Settings.Default.useDCCache_n_SS = useDCCache_n_SS;
             }
             Properties.Settings.Default.Save();
             this.Close();
@@ -238,6 +242,16 @@ namespace TS3SimRipper
             if (GamePaths_dataGridView.Rows.Count == 1)
                 AddWithPacks(selectedPath);
             //GamePaths_dataGridView.Rows.Add();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            this.useDCCache_n_SS = checkBox1.Checked;
+        }
+
+        public bool UseDCCache_n_SS
+        {
+            get { return useDCCache_n_SS; }
         }
     }
 }

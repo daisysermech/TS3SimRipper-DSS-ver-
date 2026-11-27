@@ -352,6 +352,7 @@ namespace TS3SimRipper
         {
             return (byte)(Math.Max(0, Math.Min(Math.Round(value), 255)));
         }
+        //Actually works for nearly anything, not just makeup. Just to be safe I'll leave HairColoration too.
         private Bitmap MakeupColoration(Bitmap grayBmp, Bitmap maskSrc, List<object> colors, float opacity = 1f)
         {
             float[][] cols = colors.Select(To255).ToArray();
@@ -670,7 +671,8 @@ namespace TS3SimRipper
                     if (texture == null || haircolor == null)
                     {
                         texture = new Bitmap(1024, 1024);
-                        using (Graphics g = Graphics.FromImage(texture)) { g.Clear(Color.Transparent); }
+                        using (Graphics g = Graphics.FromImage(texture))
+                            g.Clear(Color.Transparent);
                     }
                     else
                     {
@@ -682,65 +684,91 @@ namespace TS3SimRipper
                             specular = (Bitmap)ResizeImage(specular, texture.Width, texture.Height);
 
                         texture = HairColoration((Bitmap)texture, hair_mask, hairColors);
+                    }
+                    if (texture.Width > high_Hair) high_Hair = texture.Width;
 
-                        if (texture.Width > high_Hair) high_Hair = texture.Width;
+                    Image texture2, specular2, hair_mask2;
+                    uint[] mask;
+                    List<object> colors;
 
-                        if (outfitParts[i].outfitPreset.IfKeyTrue("IsHat"))
+                    if (outfitParts[i].outfitPreset.IfKeyTrue("IsHat"))
+                    {
+                        texture2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Multiplier"), ref errorList);
+                        specular2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Clothing Specular"), ref errorList);
+
+                        if (texture2 != null)
                         {
-                            Image texture2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Multiplier"), ref errorList);
-                            if (texture2 != null)
-                            {
-                                uint[] mask = FetchImageArrayFromDDS(outfitParts[i].outfitPreset.GetLink("Mask"), ref errorList, texture2.Width, texture2.Height);
-                                presetList += outfitParts[i].PartName + Environment.NewLine;
-                                List<object> colors = GetPatternColors(outfitParts[i], ref presetList);
-                                if (mask != null && colors != null)
-                                    texture2 = DisplayableTexture((Bitmap)texture2, mask, colors, true);
+                            mask = FetchImageArrayFromDDS(outfitParts[i].outfitPreset.GetLink("Mask"), ref errorList, texture2.Width, texture2.Height);
+                            presetList += outfitParts[i].PartName + Environment.NewLine;
+                            colors = GetPatternColors(outfitParts[i], ref presetList);
+                            if (mask != null && colors != null)
+                                texture2 = DisplayableTexture((Bitmap)texture2, mask, colors, true);
 
-                                if (texture.Width != texture2.Width || texture.Height != texture2.Height)
-                                    texture2 = (Bitmap)ResizeImage(texture2, texture.Width, texture.Height);
+                            if (texture.Width != texture2.Width || texture.Height != texture2.Height)
+                                texture2 = (Bitmap)ResizeImage(texture2, texture.Width, texture.Height);
 
-                                using (Graphics g = Graphics.FromImage(texture))
-                                {
-                                    g.CompositingMode = CompositingMode.SourceOver;
-                                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                                    g.SmoothingMode = SmoothingMode.HighQuality;
-
-                                    g.DrawImage(texture2, 0, 0, texture2.Width, texture2.Height);
-                                }
-                            }
-                        }
-
-                        if (outfitParts[i].outfitPreset.IfKeyTrue("DrawsOnScalp"))
-                        {
-                            Image texture3 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Scalp Diffuse Map"), ref errorList);
-                            Image specular3 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Scalp Specular Map"), ref errorList);
-                            var hair_mask3 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Scalp Control Map"), ref errorList); //our mask!
-                            float[] haircolor3 = outfitParts[i].outfitPreset.GetColor("Diffuse Color");
-
-                            List<object> hairColors3 = getHairColors(outfitParts[i]);
-                            hairColors3.Add(haircolor3);
-                            if (texture3 == null || haircolor3 == null)
-                            {
-                                texture3 = new Bitmap(1024, 1024);
-                                using (Graphics g = Graphics.FromImage(texture3)) { g.Clear(Color.Transparent); }
-                            }
-                            else
-                            {
-
-                                if (texture3.Width != hair_mask3.Width || texture3.Height != hair_mask3.Height)
-                                    hair_mask3 = (Bitmap)ResizeImage(hair_mask3, texture3.Width, texture3.Height);
-
-                                if (texture3.Width != specular3.Width || texture3.Height != specular3.Height)
-                                    specular3 = (Bitmap)ResizeImage(specular3, texture3.Width, texture3.Height);
-
-                                texture3 = HairColoration((Bitmap)texture3, hair_mask3, hairColors3);
-                            }
-                            imageStack.Add(new ImageStack(PartTypeFlags.Scalp, ClothingType.Scalp, texture3, specular3, null, gotMesh, outfitParts[i].PartName, opacity));
+                            texture = DrawOverlay(texture, texture2);
+                            specular = DrawOverlay(specular, specular2);
                         }
                     }
-                    //ALSO ADD FACE DRAWING TOO
 
+                    if (outfitParts[i].outfitPreset.IfKeyTrue("DrawsOnScalp"))
+                    {
+                        texture2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Scalp Diffuse Map"), ref errorList);
+                        specular2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Scalp Specular Map"), ref errorList);
+                        hair_mask2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Scalp Control Map"), ref errorList);
+
+                        colors = getHairColors(outfitParts[i]);
+                        colors.Add(outfitParts[i].outfitPreset.GetColor("Diffuse Color"));
+                        if (texture2 == null)
+                        {
+                            texture2 = new Bitmap(1024, 1024);
+                            using (Graphics g = Graphics.FromImage(texture2))
+                                g.Clear(Color.Transparent);
+                        }
+                        else
+                        {
+
+                            if (texture2.Width != hair_mask2.Width || texture2.Height != hair_mask2.Height)
+                                hair_mask2 = (Bitmap)ResizeImage(hair_mask2, texture2.Width, texture2.Height);
+
+                            if (texture2.Width != specular2.Width || texture2.Height != specular2.Height)
+                                specular2 = (Bitmap)ResizeImage(specular2, texture2.Width, texture2.Height);
+
+                            texture2 = HairColoration((Bitmap)texture2, (Bitmap)hair_mask2, colors);
+                        }
+                        imageStack.Add(new ImageStack(PartTypeFlags.Scalp, ClothingType.Hair, texture2, specular2, null, gotMesh, outfitParts[i].PartName, opacity));
+                    }
+
+                    if (outfitParts[i].outfitPreset.IfKeyTrue("DrawsOnFace"))
+                    {
+                        texture2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Face Diffuse Map"), ref errorList);
+                        specular2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Face Specular Map"), ref errorList);
+                        hair_mask2 = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Face Control Map"), ref errorList);
+
+                        colors = getHairColors(outfitParts[i]);
+                        colors.Add(outfitParts[i].outfitPreset.GetColor("Diffuse Color"));
+                        if (texture2 == null)
+                        {
+                            texture2 = new Bitmap(1024, 1024);
+                            using (Graphics g = Graphics.FromImage(texture2))
+                                g.Clear(Color.Transparent);
+                        }
+                        else
+                        {
+
+                            if (texture2.Width != hair_mask2.Width || texture2.Height != hair_mask2.Height)
+                                hair_mask2 = (Bitmap)ResizeImage(hair_mask2, texture2.Width, texture2.Height);
+
+                            if (texture2.Width != specular2.Width || texture2.Height != specular2.Height)
+                                specular2 = (Bitmap)ResizeImage(specular2, texture2.Width, texture2.Height);
+
+                            texture2 = HairColoration((Bitmap)texture2, (Bitmap)hair_mask2, colors);
+                        }
+                        imageStack.Add(new ImageStack(PartTypeFlags.Face, ClothingType.Hair, texture2, specular2, null, gotMesh, outfitParts[i].PartName, opacity));
+                    }
                 }
+
                 //CasSkinOverlayTintable is face and brows, CasSkinOverlayColorizable is eyes (default). CasOverlayMultiTintable is for makeup
                 else if (complate == Complate.CasOverlayMultiTintable)
                 {
@@ -748,9 +776,8 @@ namespace TS3SimRipper
                     specular = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Face Specular"), ref errorList);
                     if (texture != null)
                     {
-                        var face_mask = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Mask"), ref errorList); //our mask!
+                        var face_mask = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Mask"), ref errorList);
                         opacity = outfitParts[i].outfitPreset.GetOpacity();
-
 
                         if (texture.Width != face_mask.Width || texture.Height != face_mask.Height)
                             face_mask = (Bitmap)ResizeImage(face_mask, texture.Width, texture.Height);
@@ -771,7 +798,7 @@ namespace TS3SimRipper
                     specular = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Face Specular"), ref errorList);
                     if (texture != null)
                     {
-                        var face_mask = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Mask"), ref errorList); //our mask!
+                        var face_mask = FetchGameImageFromDDS(outfitParts[i].outfitPreset.GetLink("Mask"), ref errorList);
                         if (face_mask == null)
                         {
                             face_mask = new Bitmap(texture.Width, texture.Height);
@@ -789,13 +816,13 @@ namespace TS3SimRipper
                             specular = (Bitmap)ResizeImage(specular, texture.Width, texture.Height);
 
                         float[] color;
-                        if (complate == Complate.CasSkinOverlayColorizable) 
+                        if (complate == Complate.CasSkinOverlayColorizable)
                             color = outfitParts[i].outfitPreset.GetColor("Color");
                         else
                             color = outfitParts[i].outfitPreset.GetColor("Tint Color");
                         //eye should use "Color", else tint
 
-                        texture = MakeupColoration((Bitmap)texture, face_mask, new List<object>(){color}, opacity);
+                        texture = MakeupColoration((Bitmap)texture, face_mask, new List<object>() { color }, opacity);
 
                         if (texture.Width > high_Face) high_Face = texture.Width;
                     }
@@ -1026,6 +1053,11 @@ namespace TS3SimRipper
                     }
                 }
             }
+
+            currentBodySpecular = BuildSpecular(imageStack, PartTypeFlags.Body, currentBodyTexture);
+            currentFaceSpecular = BuildSpecular(imageStack, PartTypeFlags.Face, currentFaceTexture);
+            currentScalpSpecular = BuildSpecular(imageStack, PartTypeFlags.Scalp, currentScalpTexture);
+            currentHairSpecular = BuildSpecular(imageStack, PartTypeFlags.Hair, currentHairTexture);
 
             for (int i = 0; i < imageStack.Count; i++)
             {
@@ -1597,6 +1629,35 @@ namespace TS3SimRipper
                 g.DrawImage(top, 0, 0, baseImg.Width, baseImg.Height);
             }
             return result;
+        }
+
+        private Bitmap BuildSpecular(List<ImageStack> stack, PartTypeFlags part, Image diffuse)
+        {
+            if (diffuse == null) return null;
+            int w = diffuse.Width, h = diffuse.Height;
+            Bitmap spec = null;
+            for (int i = 0; i < stack.Count; i++)
+            {
+                ImageStack s = stack[i];
+                if (s.partType != part || s.specular == null) continue;
+                if (spec == null)
+                {
+                    spec = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+                    using (Graphics g = Graphics.FromImage(spec)) g.Clear(Color.Black);   // no specular where no layer defines it
+                }
+                Bitmap layer = new Bitmap(w, h, PixelFormat.Format32bppArgb);
+                using (Graphics g = Graphics.FromImage(layer))
+                {
+                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    g.DrawImage(s.specular, new Rectangle(0, 0, w, h), 0, 0, s.specular.Width, s.specular.Height, GraphicsUnit.Pixel);
+                }
+                if (s.image != null && part != PartTypeFlags.Hair)
+                    spec = LayerWithMask(spec, layer, s.image, false);   // only where this layer's diffuse actually covers
+                else
+                    using (Graphics g = Graphics.FromImage(spec)) g.DrawImage(layer, 0, 0);
+                layer.Dispose();
+            }
+            return spec;
         }
     }
 }
